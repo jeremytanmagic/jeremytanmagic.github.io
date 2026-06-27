@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JT Analytics">
+<title>Jeremy Tan — YouTube Analytics</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+  :root {
+    --bg:#080808;--surface:#111;--surface2:#1a1a1a;--border:#222;
+    --gold:#c9a84c;--gold-dim:#7a6230;--text:#f0ece4;--text-dim:#999;
+    --text-muted:#444;--red:#e05c5c;--green:#5cb88a;--blue:#5c8fe0;--purple:#a05ce0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;padding-bottom:80px}
+
+  /* AUTH */
+  .auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+  .auth-logo{font-family:'Playfair Display',serif;font-size:48px;color:var(--gold);margin-bottom:8px}
+  .auth-sub{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:48px}
+  .auth-title{font-family:'Playfair Display',serif;font-size:24px;color:var(--text);margin-bottom:12px;line-height:1.3}
+  .auth-desc{font-size:14px;color:var(--text-dim);line-height:1.7;max-width:320px;margin-bottom:32px}
+  .auth-btn{display:flex;align-items:center;gap:12px;background:var(--gold);color:#000;border:none;border-radius:12px;padding:16px 28px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer}
+  .auth-note{font-size:11px;color:var(--text-muted);max-width:280px;line-height:1.6;margin-top:16px}
+
+  /* LAYOUT */
+  .dashboard{display:none}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+  .logo{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold)}
+  .logo span{display:block;font-family:'Inter',sans-serif;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-top:1px}
+  .signout-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:5px 10px;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer}
+
+  /* TABS */
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;position:sticky;top:53px;z-index:99}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:12px 16px;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;font-family:'Inter',sans-serif}
+  .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+  /* TAB PANELS */
+  .panel{display:none;padding:0}
+  .panel.active{display:block}
+
+  /* CHANNEL HERO */
+  .channel-hero{background:linear-gradient(180deg,var(--surface) 0%,var(--bg) 100%);border-bottom:1px solid var(--border);padding:20px;display:flex;align-items:center;gap:14px}
+  .channel-avatar{width:56px;height:56px;border-radius:50%;border:2px solid var(--gold-dim);object-fit:cover;flex-shrink:0;background:var(--surface2)}
+  .channel-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--text);margin-bottom:2px}
+  .channel-handle{font-size:11px;color:var(--text-dim);margin-bottom:6px}
+  .channel-subs{font-size:13px;color:var(--gold);font-weight:600}
+
+  /* UPLOAD ALERT */
+  .upload-alert{margin:16px 20px 0;background:rgba(224,92,92,.08);border:1px solid rgba(224,92,92,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--red);line-height:1.6;display:none}
+  .upload-alert.show{display:block}
+  .upload-alert strong{display:block;margin-bottom:2px;font-size:13px}
+
+  /* PERIOD BAR */
+  .period-bar{display:flex;gap:6px;padding:12px 20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border)}
+  .period-bar::-webkit-scrollbar{display:none}
+  .period-chip{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all .15s}
+  .period-chip.active{background:var(--gold);border-color:var(--gold);color:#000;font-weight:600}
+
+  /* SECTIONS */
+  .section{padding:20px}
+  .section-title{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold);opacity:.4}
+  .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:8px;font-weight:600}
+  .stat-value{font-family:'Playfair Display',serif;font-size:24px;color:var(--gold);line-height:1;margin-bottom:4px}
+
+  /* FORMAT BREAKDOWN */
+  .format-row{display:flex;gap:10px;margin-bottom:10px}
+  .format-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+  .format-icon{font-size:24px;margin-bottom:6px}
+  .format-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600;margin-bottom:8px}
+  .format-val{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold)}
+  .format-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+  .format-bar{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+  .format-bar-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .6s ease}
+
+  /* VIDEOS */
+  .video-list{display:flex;flex-direction:column;gap:10px}
+  .video-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;align-items:stretch}
+  .video-rank{background:var(--surface2);width:32px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:16px;color:var(--text-muted);flex-shrink:0}
+  .video-thumb{width:80px;height:54px;object-fit:cover;flex-shrink:0}
+  .video-info{padding:8px 12px;flex:1;min-width:0}
+  .video-title{font-size:12px;font-weight:500;color:var(--text);line-height:1.3;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .video-stats{display:flex;gap:8px;font-size:11px;color:var(--text-dim);flex-wrap:wrap}
+  .video-stat-val{color:var(--gold);font-weight:600}
+  .format-tag{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;margin-left:auto;flex-shrink:0}
+  .tag-long{background:rgba(92,143,224,.15);color:var(--blue)}
+  .tag-short{background:rgba(160,92,224,.15);color:var(--purple)}
+
+  /* AI IDEAS */
+  .ideas-list{display:flex;flex-direction:column;gap:12px}
+  .idea-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative}
+  .idea-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);border-radius:3px 0 0 3px;opacity:.6}
+  .idea-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .idea-format{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px}
+  .idea-score{font-size:11px;color:var(--text-muted);margin-left:auto}
+  .idea-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+  .idea-hook{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:8px}
+  .idea-thumb{font-size:12px;color:var(--gold);line-height:1.5}
+  .idea-thumb strong{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:2px}
+  .generate-btn{width:100%;background:var(--gold);color:#000;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-bottom:16px}
+  .generate-btn:disabled{opacity:.5;cursor:not-allowed}
+  .ai-loading{text-align:center;padding:40px 20px;color:var(--text-dim)}
+
+  /* THUMBNAIL ANALYSER */
+  .thumb-drop{border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:16px}
+  .thumb-drop:hover{border-color:var(--gold-dim)}
+  .thumb-drop-icon{font-size:32px;margin-bottom:8px}
+  .thumb-drop-text{font-size:13px;color:var(--text-dim)}
+  .thumb-drop-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+  .thumb-preview{width:100%;max-width:480px;border-radius:10px;margin:0 auto 16px;display:block;border:1px solid var(--border)}
+  .score-ring-wrap{display:flex;align-items:center;justify-content:center;margin:20px 0}
+  .score-circle{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;border:4px solid var(--gold)}
+  .score-num{font-family:'Playfair Display',serif;font-size:32px;color:var(--gold);line-height:1}
+  .score-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+  .criteria-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .criteria-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+  .criteria-icon{font-size:16px;flex-shrink:0}
+  .criteria-text{flex:1;font-size:12px;color:var(--text-dim);line-height:1.4}
+  .criteria-text strong{display:block;font-size:13px;color:var(--text);margin-bottom:1px}
+  .criteria-pass{color:var(--green);font-size:16px;flex-shrink:0}
+  .criteria-fail{color:var(--red);font-size:16px;flex-shrink:0}
+
+  /* POSTING GAP */
+  .gap-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;margin-bottom:10px}
+  .gap-days{font-family:'Playfair Display',serif;font-size:56px;line-height:1;margin-bottom:4px}
+  .gap-label{font-size:12px;color:var(--text-dim);margin-bottom:16px}
+  .gap-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:8px}
+  .gap-fill{height:100%;border-radius:4px;transition:width .6s ease}
+  .gap-status{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+  .best-time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .best-time-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+  .best-time-val{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);margin-bottom:2px}
+  .best-time-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+
+  /* UTILS */
+  .loading{text-align:center;padding:40px 20px;color:var(--text-dim)}
+  .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-box{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.2);border-radius:10px;padding:14px;color:var(--red);font-size:12px;line-height:1.6;margin:16px 0}
+  .divider{height:1px;background:var(--border);margin:0}
+  .refresh-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);border-radius:8px;padding:8px 16px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;display:block;margin:16px auto 0}
+  .last-updated{text-align:center;font-size:10px;color:var(--text-muted);margin-top:8px}
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-logo">WHAAAT!?</div>
+  <div class="auth-sub">YouTube Analytics</div>
+  <div class="auth-title">Your channel.<br>Your numbers.</div>
+  <p class="auth-desc">Connect your YouTube account to see your full analytics dashboard — stats, AI video ideas, thumbnail scoring, and more.</p>
+  <button class="auth-btn" onclick="startAuth()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    Connect with Google
+  </button>
+  <p class="auth-note">Read-only access. Never posts or changes anything on your channel.</p>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+
+  <div class="header">
+    <div class="logo">WHAAAT!?<span>YouTube Analytics</span></div>
+    <button class="signout-btn" onclick="signOut()">Sign out</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('overview',this)">📊 Overview</div>
+    <div class="tab" onclick="switchTab('format',this)">🎬 Long vs Short</div>
+    <div class="tab" onclick="switchTab('ideas',this)">💡 AI Ideas</div>
+    <div class="tab" onclick="switchTab('thumbnail',this)">🖼 Thumbnail</div>
+    <div class="tab" onclick="switchTab('posting',this)">📅 Posting</div>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div class="panel active" id="tab-overview">
+    <div class="channel-hero" id="channelHero">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div id="uploadAlert" class="upload-alert"></div>
+    <div class="period-bar">
+      <div class="period-chip active" onclick="setPeriod(7,this)">7 days</div>
+      <div class="period-chip" onclick="setPeriod(28,this)">28 days</div>
+      <div class="period-chip" onclick="setPeriod(90,this)">90 days</div>
+      <div class="period-chip" onclick="setPeriod(365,this)">1 year</div>
+    </div>
+    <div class="section">
+      <div class="section-title">Overview</div>
+      <div id="statsGrid" class="loading"><div class="spinner"></div><div>Loading stats…</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section">
+      <div class="section-title">Top Videos</div>
+      <div id="topVideos" class="loading"><div class="spinner"></div><div>Loading videos…</div></div>
+    </div>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+    <div class="last-updated" id="lastUpdated"></div>
+  </div>
+
+  <!-- FORMAT TAB -->
+  <div class="panel" id="tab-format">
+    <div class="section">
+      <div class="section-title" style="margin-bottom:6px">Long vs Short Form</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px">Videos under 3 minutes counted as Shorts</p>
+      <div id="formatBreakdown" class="loading"><div class="spinner"></div><div>Analysing your content…</div></div>
+    </div>
+  </div>
+
+  <!-- AI IDEAS TAB -->
+  <div class="panel" id="tab-ideas">
+    <div class="section">
+      <div class="section-title">AI Video Ideas</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Based on your top performing content. Each idea is tailored to your channel's proven winning formula.</p>
+      <button class="generate-btn" id="generateBtn" onclick="generateIdeas()">✨ Generate Ideas From My Top Videos</button>
+      <div id="ideasContent"></div>
+    </div>
+  </div>
+
+  <!-- THUMBNAIL TAB -->
+  <div class="panel" id="tab-thumbnail">
+    <div class="section">
+      <div class="section-title">Thumbnail Analyser</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Upload a thumbnail to score it before you post.</p>
+      <div class="thumb-drop" onclick="document.getElementById('thumbInput').click()" id="thumbDrop">
+        <div class="thumb-drop-icon">🖼</div>
+        <div class="thumb-drop-text">Tap to upload thumbnail</div>
+        <div class="thumb-drop-sub">JPG or PNG — ideally 1280×720</div>
+      </div>
+      <input type="file" id="thumbInput" accept="image/*" onchange="analyseThumbnail(event)">
+      <div id="thumbResult"></div>
+    </div>
+  </div>
+
+  <!-- POSTING TAB -->
+  <div class="panel" id="tab-posting">
+    <div class="section">
+      <div class="section-title">Posting Gap</div>
+      <div id="postingGap" class="loading"><div class="spinner"></div><div>Checking your uploads…</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section">
+      <div class="section-title">Best Times to Post</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Based on when your audience is most active globally.</p>
+      <div id="bestTimes"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const CLIENT_ID = '366735211052-2nnkqc1r2e2h2qqmkrpsgn0u0st9vkeg.apps.googleusercontent.com';
+  const ANTHROPIC_KEY = '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';
+  const REDIRECT = 'https://jeremytanmagic.github.io/jeremy-youtube-dashboard.html';
+  const SCOPES = 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/yt-analytics-monetary.readonly';
+
+  let accessToken = null;
+  let currentDays = 7;
+  let topVideoData = [];
+  let allVideoDetails = [];
+
+  // ── INIT ──────────────────────────────────────────────────────
+  function init() {
+    const hash = window.location.hash.substring(1);
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash);
+      const token = params.get('access_token');
+      const expiresIn = params.get('expires_in');
+      if (token) {
+        accessToken = token;
+        localStorage.setItem('yt_token', token);
+        localStorage.setItem('yt_token_expiry', (Date.now() + parseInt(expiresIn||3600)*1000).toString());
+        history.replaceState(null, '', window.location.pathname);
+        showDashboard();
+        return;
+      }
+    }
+    const stored = localStorage.getItem('yt_token');
+    const expiry = localStorage.getItem('yt_token_expiry');
+    if (stored && expiry && Date.now() < parseInt(expiry)) {
+      accessToken = stored;
+      showDashboard();
+      return;
+    }
+    document.getElementById('authScreen').style.display = 'flex';
+  }
+
+  function startAuth() {
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID, redirect_uri: REDIRECT,
+      response_type: 'token', scope: SCOPES, include_granted_scopes: 'true',
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  }
+
+  function signOut() {
+    accessToken = null;
+    localStorage.removeItem('yt_token');
+    localStorage.removeItem('yt_token_expiry');
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+  }
+
+  function showDashboard() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadChannel();
+    loadData();
+    loadPostingData();
+    loadBestTimes();
+  }
+
+  // ── TABS ──────────────────────────────────────────────────────
+  function switchTab(id, el) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-'+id).classList.add('active');
+    if (id==='format' && allVideoDetails.length) renderFormatBreakdown();
+  }
+
+  // ── API ───────────────────────────────────────────────────────
+  async function apiGet(url) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    return res.json();
+  }
+
+  function dateRange(days) {
+    const end = new Date(), start = new Date();
+    start.setDate(start.getDate() - days);
+    return { startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] };
+  }
+
+  function fmt(n) {
+    if (n===null||n===undefined) return '—';
+    if (n>=1000000) return (n/1000000).toFixed(1)+'M';
+    if (n>=1000) return (n/1000).toFixed(1)+'K';
+    return Number(n).toLocaleString();
+  }
+  function fmtTime(mins) { if (!mins) return '—'; if (mins>=60) return (mins/60).toFixed(1)+'h'; return Math.round(mins)+'m'; }
+  function fmtMoney(usd) { if (usd===null||usd===undefined) return '—'; return '$'+parseFloat(usd).toFixed(2); }
+
+  // ── CHANNEL ───────────────────────────────────────────────────
+  async function loadChannel() {
+    try {
+      const data = await apiGet('https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true');
+      const ch = data.items?.[0];
+      if (!ch) return;
+      document.getElementById('channelHero').innerHTML = `
+        <img class="channel-avatar" src="${ch.snippet.thumbnails?.medium?.url||''}" alt="">
+        <div>
+          <div class="channel-name">${ch.snippet.title}</div>
+          <div class="channel-handle">@jeremytanmagic</div>
+          <div class="channel-subs">${fmt(parseInt(ch.statistics.subscriberCount))} subscribers</div>
+        </div>`;
+    } catch(e) {
+      document.getElementById('channelHero').innerHTML = `<div style="padding:16px;color:var(--text-dim);font-size:13px">Could not load channel</div>`;
+    }
+  }
+
+  // ── OVERVIEW ──────────────────────────────────────────────────
+  async function loadData() {
+    await Promise.all([loadAnalytics(currentDays), loadTopVideos(currentDays)]);
+    document.getElementById('lastUpdated').textContent = 'Updated '+new Date().toLocaleTimeString('en-SG');
+  }
+
+  async function loadAnalytics(days) {
+    const {startDate,endDate} = dateRange(days);
+    const el = document.getElementById('statsGrid');
+    el.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading…</div></div>';
+    try {
+      const data = await apiGet(`https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=views,estimatedMinutesWatched,subscribersGained,subscribersLost,likes,shares,estimatedRevenue`);
+      const row = data.rows?.[0]||[];
+      const [views,watchMins,subsGained,subsLost,likes,shares,revenue] = row;
+      const netSubs = (subsGained||0)-(subsLost||0);
+      el.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Views</div><div class="stat-value">${fmt(views)}</div></div>
+          <div class="stat-card"><div class="stat-label">Watch Time</div><div class="stat-value">${fmtTime(watchMins)}</div></div>
+          <div class="stat-card"><div class="stat-label">Net Subs</div><div class="stat-value" style="color:${netSubs>=0?'var(--green)':'var(--red)'}">${netSubs>=0?'+':''}${fmt(netSubs)}</div></div>
+          <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">${fmtMoney(revenue)}</div></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Likes</div><div class="stat-value">${fmt(likes)}</div></div>
+          <div class="stat-card"><div class="stat-label">Shares</div><div class="stat-value">${fmt(shares)}</div></div>
+        </div>`;
+    } catch(e) {
+      el.innerHTML = `<div class="error-box">Could not load analytics. ${e.message}</div>`;
+    }
+  }
+
+  async function loadTopVideos(days) {
+    const {startDate,endDate} = dateRange(days);
+    const el = document.getElementById('topVideos');
+    el.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading…</div></div>';
+    try {
+      const data = await apiGet(`https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=views,estimatedMinutesWatched,likes&dimensions=video&sort=-views&maxResults=15`);
+      if (!data.rows?.length) { el.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">No video data for this period</div>'; return; }
+      topVideoData = data.rows;
+      const ids = data.rows.map(r=>r[0]).join(',');
+      const details = await apiGet(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}`);
+      allVideoDetails = details.items || [];
+      const map = {};
+      allVideoDetails.forEach(v=>{map[v.id]={snippet:v.snippet,duration:v.contentDetails?.duration}});
+
+      el.innerHTML = data.rows.map((row,i)=>{
+        const [id,views,watchMins,likes]=row;
+        const v=map[id]||{};
+        const s=v.snippet||{};
+        const dur = parseDuration(v.duration||'');
+        const isShort = dur > 0 && dur <= 180;
+        return `<div class="video-card">
+          <div class="video-rank">${i+1}</div>
+          ${s.thumbnails?.medium?.url?`<img class="video-thumb" src="${s.thumbnails.medium.url}" alt="">`:''}
+          <div class="video-info">
+            <div style="display:flex;align-items:flex-start;gap:6px">
+              <div class="video-title" style="flex:1">${s.title||'Unknown'}</div>
+              <span class="format-tag ${isShort?'tag-short':'tag-long'}">${isShort?'Short':'Long'}</span>
+            </div>
+            <div class="video-stats">
+              <span><span class="video-stat-val">${fmt(views)}</span> views</span>
+              <span><span class="video-stat-val">${fmtTime(watchMins)}</span> watched</span>
+              <span><span class="video-stat-val">${fmt(likes)}</span> likes</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      el.innerHTML = `<div class="error-box">Could not load videos. ${e.message}</div>`;
+    }
+  }
+
+  function parseDuration(iso) {
+    if (!iso) return 0;
+    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!m) return 0;
+    return (parseInt(m[1]||0)*3600)+(parseInt(m[2]||0)*60)+parseInt(m[3]||0);
+  }
+
+  function setPeriod(days,el) {
+    currentDays=days;
+    document.querySelectorAll('.period-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    loadData();
+  }
+
+  // ── FORMAT BREAKDOWN ──────────────────────────────────────────
+  function renderFormatBreakdown() {
+    const el = document.getElementById('formatBreakdown');
+    if (!topVideoData.length || !allVideoDetails.length) {
+      el.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Load Overview first to see format breakdown</div>';
+      return;
+    }
+    const map = {};
+    allVideoDetails.forEach(v=>{map[v.id]=parseDuration(v.contentDetails?.duration||'')});
+
+    let longViews=0,shortViews=0,longWatch=0,shortWatch=0,longCount=0,shortCount=0;
+    topVideoData.forEach(row=>{
+      const [id,views,watch]=row;
+      const dur=map[id]||0;
+      if (dur>0&&dur<=180) { shortViews+=views||0; shortWatch+=watch||0; shortCount++; }
+      else { longViews+=views||0; longWatch+=watch||0; longCount++; }
+    });
+
+    const totalViews = longViews+shortViews||1;
+    const longPct = Math.round((longViews/totalViews)*100);
+    const shortPct = 100-longPct;
+
+    el.innerHTML = `
+      <div class="format-row">
+        <div class="format-card">
+          <div class="format-icon">🎬</div>
+          <div class="format-label">Long Form</div>
+          <div class="format-val">${fmt(longViews)}</div>
+          <div class="format-sub">${longCount} videos · ${fmtTime(longWatch)} watched</div>
+          <div class="format-bar"><div class="format-bar-fill" style="width:${longPct}%"></div></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${longPct}% of views</div>
+        </div>
+        <div class="format-card">
+          <div class="format-icon">⚡</div>
+          <div class="format-label">Shorts</div>
+          <div class="format-val">${fmt(shortViews)}</div>
+          <div class="format-sub">${shortCount} videos · ${fmtTime(shortWatch)} watched</div>
+          <div class="format-bar"><div class="format-bar-fill" style="width:${shortPct}%;background:var(--purple)"></div></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${shortPct}% of views</div>
+        </div>
+      </div>
+      <div class="stat-card" style="margin-top:10px;text-align:center">
+        <div class="stat-label">Recommendation</div>
+        <div style="font-size:13px;color:var(--text-dim);line-height:1.7;margin-top:8px">
+          ${longPct>shortPct
+            ? `Long form is driving <strong style="color:var(--gold)">${longPct}%</strong> of your views. Your audience wants depth. Keep making long form your priority — Shorts can supplement but shouldn't replace it.`
+            : `Shorts are driving <strong style="color:var(--purple)">${shortPct}%</strong> of your views. Strong top-of-funnel. Consider converting your best Shorts topics into long form deep dives to capture watch time and revenue.`
+          }
+        </div>
+      </div>`;
+  }
+
+  // ── AI IDEAS ──────────────────────────────────────────────────
+  async function generateIdeas() {
+    const btn = document.getElementById('generateBtn');
+    const el = document.getElementById('ideasContent');
+
+    if (!topVideoData.length || !allVideoDetails.length) {
+      el.innerHTML = '<div class="error-box">Please load the Overview tab first so I can analyse your top videos.</div>';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '✨ Generating…';
+    el.innerHTML = '<div class="ai-loading"><div class="spinner"></div><div style="margin-top:8px">Analysing your top videos and generating ideas…</div></div>';
+
+    const map = {};
+    allVideoDetails.forEach(v=>{map[v.id]=v.snippet?.title||''});
+    const topTitles = topVideoData.slice(0,10).map((row,i)=>`${i+1}. "${map[row[0]]||'Unknown'}" — ${fmt(row[1])} views`).join('\n');
+
+    try {
+      const response = await fetch('https://jeremy-ai-proxy.jeremytanmagic.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `You are a YouTube strategy expert. Analyse these top performing videos from Jeremy Tan (@jeremytanmagic), a professional magician and mind reader with 1.1M subscribers known for card magic, casino cheating exposés, and sleight of hand.
+
+TOP VIDEOS:
+${topTitles}
+
+Generate 5 video ideas that match his winning formula. For each idea return ONLY valid JSON in this exact format, no other text:
+[
+  {
+    "title": "Video title (clickbait, curiosity-driven)",
+    "format": "Long Form" or "Short",
+    "hook": "Opening 15 seconds script",
+    "thumbnail": "Thumbnail concept description",
+    "score": 85
+  }
+]`
+          }]
+        })
+      });
+
+      const rawText = await response.text();
+      console.log('Worker response:', rawText);
+      let data;
+      try { data = JSON.parse(rawText); } catch(e) { throw new Error('Worker returned invalid JSON: ' + rawText.slice(0,200)); }
+      if (data.error) throw new Error('API error: ' + JSON.stringify(data.error));
+      const text = data.content?.[0]?.text||'';
+      console.log('AI text:', text);
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error('Could not find JSON in: ' + text.slice(0,200));
+      const ideas = JSON.parse(jsonMatch[0]);
+
+      el.innerHTML = `<div class="ideas-list">${ideas.map(idea=>`
+        <div class="idea-card">
+          <div class="idea-header">
+            <span class="idea-format ${idea.format==='Short'?'tag-short':'tag-long'}">${idea.format}</span>
+            <span class="idea-score">Predicted score: ${idea.score}/100</span>
+          </div>
+          <div class="idea-title">${idea.title}</div>
+          <div class="idea-hook"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);display:block;margin-bottom:4px">Hook (first 15 sec)</strong>${idea.hook}</div>
+          <div class="idea-thumb"><strong>Thumbnail concept</strong>${idea.thumbnail}</div>
+        </div>`).join('')}</div>`;
+
+      btn.textContent = '↻ Regenerate Ideas';
+      btn.disabled = false;
+    } catch(e) {
+      el.innerHTML = `<div class="error-box">Could not generate ideas. ${e.message}</div>`;
+      btn.textContent = '✨ Generate Ideas From My Top Videos';
+      btn.disabled = false;
+    }
+  }
+
+  // ── THUMBNAIL ANALYSER ────────────────────────────────────────
+  async function analyseThumbnail(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const el = document.getElementById('thumbResult');
+    const drop = document.getElementById('thumbDrop');
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      const imgSrc = e.target.result;
+      drop.innerHTML = `<img src="${imgSrc}" class="thumb-preview" style="max-height:200px;object-fit:contain">`;
+      el.innerHTML = '<div class="ai-loading"><div class="spinner"></div><div style="margin-top:8px">Analysing thumbnail…</div></div>';
+
+      try {
+        const response = await fetch('https://jeremy-ai-proxy.jeremytanmagic.workers.dev', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1000,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } },
+                { type: 'text', text: `You are a YouTube thumbnail expert. Analyse this thumbnail for a magic/card trick channel (@jeremytanmagic). Score it out of 100 and evaluate these 5 criteria. Return ONLY valid JSON, no other text:
+{
+  "score": 85,
+  "verdict": "One sentence overall verdict",
+  "criteria": [
+    {"name": "Contrast & Visibility", "pass": true, "feedback": "brief feedback"},
+    {"name": "Text Readability", "pass": true, "feedback": "brief feedback"},
+    {"name": "Face / Emotion", "pass": false, "feedback": "brief feedback"},
+    {"name": "Curiosity Gap", "pass": true, "feedback": "brief feedback"},
+    {"name": "Brand Consistency", "pass": true, "feedback": "brief feedback"}
+  ],
+  "topFix": "The single most important thing to change"
+}` }
+              ]
+            }]
+          })
+        });
+
+        const rawText = await response.text();
+        console.log('Thumb worker response:', rawText);
+        let data;
+        try { data = JSON.parse(rawText); } catch(e) { throw new Error('Worker returned invalid JSON: ' + rawText.slice(0,200)); }
+        if (data.error) throw new Error('API error: ' + JSON.stringify(data.error));
+        const text = data.content?.[0]?.text||'';
+        console.log('Thumb AI text:', text);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Could not find JSON in: ' + text.slice(0,200));
+        const result = JSON.parse(jsonMatch[0]);
+
+        const scoreColor = result.score>=70?'var(--green)':result.score>=50?'var(--gold)':'var(--red)';
+
+        el.innerHTML = `
+          <div class="score-ring-wrap">
+            <div class="score-circle" style="border-color:${scoreColor}">
+              <div class="score-num" style="color:${scoreColor}">${result.score}</div>
+              <div class="score-label">/ 100</div>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6">${result.verdict}</div>
+          <div class="criteria-list">
+            ${result.criteria.map(c=>`
+              <div class="criteria-row">
+                <div class="criteria-text">
+                  <strong>${c.name}</strong>
+                  ${c.feedback}
+                </div>
+                <span class="${c.pass?'criteria-pass':'criteria-fail'}">${c.pass?'✓':'✗'}</span>
+              </div>`).join('')}
+          </div>
+          ${result.topFix?`<div class="stat-card" style="border-color:rgba(201,168,76,.3)">
+            <div class="stat-label">Top Fix</div>
+            <div style="font-size:13px;color:var(--text-dim);margin-top:6px;line-height:1.6">${result.topFix}</div>
+          </div>`:''}
+          <button onclick="document.getElementById('thumbInput').click()" style="margin-top:16px;width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);border-radius:10px;padding:12px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">↑ Upload Another</button>`;
+
+      } catch(err) {
+        el.innerHTML = `<div class="error-box">Could not analyse thumbnail. ${err.message}</div>`;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── POSTING GAP ───────────────────────────────────────────────
+  async function loadPostingData() {
+    const el = document.getElementById('postingGap');
+    try {
+      const ch = await apiGet('https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true');
+      const uploadsId = ch.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+      if (!uploadsId) throw new Error('Could not get uploads');
+
+      const uploads = await apiGet(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsId}&maxResults=1`);
+      const lastVideo = uploads.items?.[0]?.snippet;
+      if (!lastVideo) throw new Error('No uploads found');
+
+      const lastDate = new Date(lastVideo.publishedAt);
+      const now = new Date();
+      const daysSince = Math.floor((now - lastDate) / (1000*60*60*24));
+
+      const status = daysSince<=3?{label:'On track',color:'var(--green)'}:
+                     daysSince<=7?{label:'Getting close',color:'var(--gold)'}:
+                     daysSince<=14?{label:'Upload soon',color:'var(--orange)',realColor:'#e0925c'}:
+                     {label:'Overdue',color:'var(--red)'};
+
+      const barPct = Math.min(100, (daysSince/14)*100);
+      const barColor = status.realColor||status.color;
+
+      el.innerHTML = `
+        <div class="gap-card">
+          <div class="gap-days" style="color:${status.color}">${daysSince}</div>
+          <div class="gap-label">days since last upload</div>
+          <div class="gap-bar"><div class="gap-fill" style="width:${barPct}%;background:${barColor}"></div></div>
+          <div class="gap-status" style="color:${status.color}">${status.label}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Upload</div>
+          <div style="font-size:13px;color:var(--text-dim);margin-top:6px;line-height:1.6">
+            <strong style="color:var(--text);display:block;margin-bottom:2px">${lastVideo.title}</strong>
+            ${lastDate.toLocaleDateString('en-SG',{day:'numeric',month:'long',year:'numeric'})}
+          </div>
+        </div>`;
+    } catch(e) {
+      el.innerHTML = `<div class="error-box">Could not load posting data. ${e.message}</div>`;
+    }
+  }
+
+  // ── BEST TIMES ────────────────────────────────────────────────
+  function loadBestTimes() {
+    // Based on Jeremy's audience data: ~89% male, 25-44, India + US top countries
+    const times = [
+      { val: 'Tue & Thu', label: 'Best Days' },
+      { val: '7–9 PM', label: 'SGT Evening' },
+      { val: '6–8 AM', label: 'US Morning' },
+    ];
+    document.getElementById('bestTimes').innerHTML = `
+      <div class="best-time-grid">
+        ${times.map(t=>`<div class="best-time-card"><div class="best-time-val">${t.val}</div><div class="best-time-label">${t.label}</div></div>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.7;padding:0 4px">Based on your audience breakdown: India & US as top countries, core age 25–44. Tuesday and Thursday evenings SGT hit peak overlap between Asia and US morning commute.</div>`;
+  }
+
+  init();
+</script>
+</body>
+</html>
